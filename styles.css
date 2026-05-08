@@ -116,28 +116,25 @@ body {
 .top-list {
   list-style: none;
   margin: 0; padding: 0;
-  counter-reset: top;
 }
 .top-list li {
   display: grid;
-  grid-template-columns: 22px 1fr auto;
+  grid-template-columns: 36px 1fr auto;
   gap: 10px;
-  align-items: baseline;
-  padding: 7px 0;
+  align-items: center;
+  padding: 8px 20px;
   border-bottom: 1px dashed var(--line-soft);
-  counter-increment: top;
   cursor: pointer;
   transition: background 0.15s ease;
   margin: 0 -20px;
-  padding-left: 20px;
-  padding-right: 20px;
 }
 .top-list li:hover { background: var(--bg-3); }
-.top-list li::before {
-  content: counter(top, decimal-leading-zero);
-  color: var(--ink-3);
-  font-size: 10px;
-  letter-spacing: 1px;
+.top-list .rank {
+  font-family: "Fraunces", serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
 }
 .top-list .place {
   color: var(--ink);
@@ -153,8 +150,10 @@ body {
 }
 .top-list .count {
   color: var(--accent-2);
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 500;
+  font-size: 11px;
+  white-space: nowrap;
+  text-align: right;
 }
 
 /* State bars */
@@ -233,6 +232,10 @@ body {
 }
 .pin:hover { transform: scale(1.15); z-index: 9999; }
 .pin.with-num { font-size: 11px; }
+.pin.hub {
+  background: #5b7ec5;
+  box-shadow: 0 0 0 1px #0006, 0 2px 6px #0008, 0 0 16px #5b7ec530;
+}
 
 /* Leaflet popup overrides */
 .leaflet-popup-content-wrapper {
@@ -262,6 +265,14 @@ body {
 .popup-row .k { color: var(--ink-3); }
 .popup-row .v { color: var(--ink); font-weight: 500; }
 .popup-row .v.accent { color: var(--accent-2); }
+.popup-hub {
+  font-size: 10px;
+  color: #5b7ec5;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.stat-num--intl { color: #5b7ec5; }
 
 /* Leaflet attribution + controls */
 .leaflet-control-attribution {

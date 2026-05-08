@@ -2,6 +2,12 @@
 
 const fmtNum = (n) => n.toLocaleString('en-US');
 
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 const STATE_NAMES = {
   AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
   CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia',
@@ -17,7 +23,6 @@ const STATE_NAMES = {
   AE: 'Military (Europe)', AP: 'Military (Pacific)',
 };
 
-// Pin size tiers -- thresholds scale with typical order counts at each granularity
 const TIERS = {
   zip:   [{ size: 14, label: '1 order' }, { size: 19, min: 2, label: '2–3 orders' }, { size: 24, min: 4, label: '4–6 orders' }, { size: 30, min: 7, label: '7+ orders' }],
   city:  [{ size: 14, label: '1–2 orders' }, { size: 19, min: 3, label: '3–5 orders' }, { size: 24, min: 6, label: '6–10 orders' }, { size: 30, min: 11, label: '11+ orders' }],
@@ -51,7 +56,7 @@ async function load() {
 function aggregateCity(data) {
   const map = {};
   for (const d of data) {
-    if (!d.city || !d.state) continue;
+    if (!d.city || !d.state || d.forwarding_hub) continue;
     const key = `${d.city}||${d.state}`;
     if (!map[key]) map[key] = { city: d.city, state: d.state, count: 0, latSum: 0, lngSum: 0, n: 0 };
     map[key].count += d.count;
@@ -65,7 +70,7 @@ function aggregateCity(data) {
 function aggregateState(data) {
   const map = {};
   for (const d of data) {
-    if (!d.state) continue;
+    if (!d.state || d.forwarding_hub) continue;
     if (!map[d.state]) map[d.state] = { state: d.state, count: 0, latSum: 0, lngSum: 0, n: 0 };
     map[d.state].count += d.count;
     if (d.lat !== 0 && d.lng !== 0) { map[d.state].latSum += d.lat; map[d.state].lngSum += d.lng; map[d.state].n++; }
@@ -85,10 +90,12 @@ function getViewData(raw, view) {
 
 function buildStats(raw) {
   const totalOrders = raw.reduce((s, d) => s + d.count, 0);
-  const stateSet = new Set(raw.map(d => d.state).filter(Boolean));
+  const intlOrders = raw.filter(d => d.forwarding_hub).reduce((s, d) => s + d.count, 0);
+  const stateSet = new Set(raw.filter(d => !d.forwarding_hub).map(d => d.state).filter(Boolean));
   document.getElementById('stat-orders').textContent = fmtNum(totalOrders);
   document.getElementById('stat-zips').textContent = fmtNum(raw.length);
   document.getElementById('stat-states').textContent = fmtNum(stateSet.size);
+  document.getElementById('stat-intl').textContent = fmtNum(intlOrders);
 }
 
 function popupHTML(d, view) {
@@ -104,9 +111,13 @@ function popupHTML(d, view) {
       <div class="popup-row"><span class="k">Orders</span><span class="v accent">${fmtNum(d.count)}</span></div>
     `;
   }
+  const hubBadge = d.forwarding_hub
+    ? '<div class="popup-hub">International forwarding hub</div>'
+    : '';
   return `
     <div class="popup-place">${d.city}, ${d.state}</div>
     <div class="popup-zip">${d.country === 'United States' ? 'ZIP' : 'Postal'} ${d.zip}</div>
+    ${hubBadge}
     <div class="popup-row"><span class="k">Orders</span><span class="v accent">${d.count}</span></div>
   `;
 }
@@ -116,26 +127,27 @@ function buildTopList(viewData, view, focusFn) {
   const top = [...viewData].sort((a, b) => b.count - a.count).slice(0, TOP_COUNT);
   const ol = document.getElementById('top-list');
   ol.innerHTML = '';
-  for (const d of top) {
+  top.forEach((d, i) => {
     const li = document.createElement('li');
     const label = view === 'state'
       ? (STATE_NAMES[d.state] || d.state)
       : `${d.city}, ${d.state}`;
     const sub = view === 'zip' ? `<span class="zip">${d.zip}</span>` : '';
+    const countLabel = `${fmtNum(d.count)} ${d.count === 1 ? 'order' : 'orders'}`;
     li.innerHTML = `
-      <span></span>
+      <span class="rank">${ordinal(i + 1)}</span>
       <span class="place">${label}${sub}</span>
-      <span class="count">${fmtNum(d.count)}</span>
+      <span class="count">${countLabel}</span>
     `;
     li.addEventListener('click', () => focusFn(d));
     ol.appendChild(li);
-  }
+  });
 }
 
 function buildStateList(raw) {
   const byState = {};
   for (const d of raw) {
-    if (!d.state) continue;
+    if (!d.state || d.forwarding_hub) continue;
     byState[d.state] = (byState[d.state] || 0) + d.count;
   }
   const arr = Object.entries(byState).sort((a, b) => b[1] - a[1]);
@@ -181,12 +193,14 @@ function buildMarkers(viewData, view, markerLayer) {
     if (typeof d.lat !== 'number' || typeof d.lng !== 'number') continue;
     const size = pinSize(d.count, view);
     const showNum = d.count >= 2;
-    const html = `<div class="pin${showNum ? ' with-num' : ''}" style="width:${size}px;height:${size}px;">${showNum ? fmtNum(d.count) : ''}</div>`;
+    const hubClass = d.forwarding_hub ? ' hub' : '';
+    const html = `<div class="pin${showNum ? ' with-num' : ''}${hubClass}" style="width:${size}px;height:${size}px;">${showNum ? fmtNum(d.count) : ''}</div>`;
     const icon = L.divIcon({ className: 'pin-wrap', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
     const m = L.marker([d.lat, d.lng], { icon, riseOnHover: true });
     const tipLabel = view === 'state' ? (STATE_NAMES[d.state] || d.state) : `${d.city}, ${d.state}`;
+    const tipSuffix = d.forwarding_hub ? ' (intl hub)' : '';
     m.bindPopup(popupHTML(d, view), { closeButton: true, autoPan: true });
-    m.bindTooltip(`${tipLabel} — ${fmtNum(d.count)}`, { direction: 'top', offset: [0, -size / 2 - 4] });
+    m.bindTooltip(`${tipLabel}${tipSuffix} — ${fmtNum(d.count)}`, { direction: 'top', offset: [0, -size / 2 - 4] });
     m.addTo(markerLayer);
     index[d._key] = m;
   }

@@ -33,6 +33,10 @@ COL = {
     'sale_date': 52,
 }
 
+# ZIPs that are international forwarding hubs -- orders here count as international,
+# not toward the destination state's totals.
+FORWARDING_HUBS = {'60139'}  # Glendale Heights, IL
+
 
 def main(csv_path, out_path):
     with open(csv_path, 'r', encoding='utf-8-sig', newline='') as f:
@@ -60,6 +64,7 @@ def main(csv_path, out_path):
                 'country': ship_country,
                 'count': 0,
                 'platform': 'ebay',
+                'forwarding_hub': zip_norm in FORWARDING_HUBS,
             }
         agg[key]['count'] += 1
 
