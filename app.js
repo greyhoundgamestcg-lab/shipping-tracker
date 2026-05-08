@@ -162,11 +162,17 @@ function buildStateList(raw) {
     const pct = Math.max(2, (n / max) * 100);
     li.innerHTML = `
       <span class="st">${st}</span>
-      <span class="bar-wrap"><span class="bar" style="width:${pct}%"></span></span>
+      <span class="bar-wrap"><span class="bar" data-pct="${pct}"></span></span>
       <span class="num">${n}</span>
     `;
     ul.appendChild(li);
   });
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    ul.querySelectorAll('.bar[data-pct]').forEach(bar => {
+      bar.style.width = bar.dataset.pct + '%';
+    });
+  }));
 
   const btn = document.getElementById('state-expand-btn');
   if (arr.length > STATE_ROWS_DEFAULT) {
@@ -258,7 +264,13 @@ function buildMarkers(viewData, view, markerLayer) {
       document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
       viewData = getViewData(raw, view);
       index = buildMarkers(viewData, view, markerLayer);
-      buildTopList(viewData, view, focusFn);
+      const ol = document.getElementById('top-list');
+      ol.style.transition = 'opacity 0.15s ease';
+      ol.style.opacity = '0';
+      setTimeout(() => {
+        buildTopList(viewData, view, focusFn);
+        ol.style.opacity = '1';
+      }, 150);
       updateLegend(view);
     });
   });
