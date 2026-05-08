@@ -29,9 +29,11 @@
 </header>
 
 <div class="view-bar">
-  <button class="view-btn active" data-view="zip">ZIP</button>
-  <button class="view-btn" data-view="city">City</button>
-  <button class="view-btn" data-view="state">State</button>
+  <div class="view-group">
+    <button class="view-btn active" data-view="state">State</button>
+    <button class="view-btn" data-view="city">City</button>
+    <button class="view-btn" data-view="zip">ZIP</button>
+  </div>
 </div>
 
 <main class="layout">
@@ -40,9 +42,10 @@
       <h3 class="panel-title" id="top-title">Top destinations</h3>
       <ol class="top-list" id="top-list"></ol>
     </section>
-    <section class="panel">
+    <section class="panel" id="state-panel">
       <h3 class="panel-title">By state</h3>
       <ul class="state-list" id="state-list"></ul>
+      <button class="expand-btn" id="state-expand-btn" style="display:none"></button>
     </section>
     <section class="panel legend-panel">
       <h3 class="panel-title">Legend</h3>

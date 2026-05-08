@@ -2,12 +2,31 @@
 
 const fmtNum = (n) => n.toLocaleString('en-US');
 
-// Pin size tiers per view -- thresholds scale with typical counts at each level
+const STATE_NAMES = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
+  CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia',
+  FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois',
+  IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana',
+  ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota',
+  MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada',
+  NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York',
+  NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon',
+  PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota',
+  TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia',
+  WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+  AE: 'Military (Europe)', AP: 'Military (Pacific)',
+};
+
+// Pin size tiers -- thresholds scale with typical order counts at each granularity
 const TIERS = {
   zip:   [{ size: 14, label: '1 order' }, { size: 19, min: 2, label: '2–3 orders' }, { size: 24, min: 4, label: '4–6 orders' }, { size: 30, min: 7, label: '7+ orders' }],
   city:  [{ size: 14, label: '1–2 orders' }, { size: 19, min: 3, label: '3–5 orders' }, { size: 24, min: 6, label: '6–10 orders' }, { size: 30, min: 11, label: '11+ orders' }],
   state: [{ size: 14, label: '1–10 orders' }, { size: 19, min: 11, label: '11–25 orders' }, { size: 24, min: 26, label: '26–50 orders' }, { size: 30, min: 51, label: '51+ orders' }],
 };
+
+const TOP_COUNT = 5;
+const STATE_ROWS_DEFAULT = 6;
+const TOP_TITLES = { zip: 'Top destinations', city: 'Top cities', state: 'Top states' };
 
 function pinSize(count, view) {
   const tiers = TIERS[view];
@@ -75,7 +94,7 @@ function buildStats(raw) {
 function popupHTML(d, view) {
   if (view === 'state') {
     return `
-      <div class="popup-place">${d.state}</div>
+      <div class="popup-place">${STATE_NAMES[d.state] || d.state}</div>
       <div class="popup-row"><span class="k">Orders</span><span class="v accent">${fmtNum(d.count)}</span></div>
     `;
   }
@@ -92,16 +111,16 @@ function popupHTML(d, view) {
   `;
 }
 
-const TOP_TITLES = { zip: 'Top destinations', city: 'Top cities', state: 'Top states' };
-
 function buildTopList(viewData, view, focusFn) {
   document.getElementById('top-title').textContent = TOP_TITLES[view];
-  const top = [...viewData].sort((a, b) => b.count - a.count).slice(0, 10);
+  const top = [...viewData].sort((a, b) => b.count - a.count).slice(0, TOP_COUNT);
   const ol = document.getElementById('top-list');
   ol.innerHTML = '';
   for (const d of top) {
     const li = document.createElement('li');
-    const label = view === 'state' ? d.state : `${d.city}, ${d.state}`;
+    const label = view === 'state'
+      ? (STATE_NAMES[d.state] || d.state)
+      : `${d.city}, ${d.state}`;
     const sub = view === 'zip' ? `<span class="zip">${d.zip}</span>` : '';
     li.innerHTML = `
       <span></span>
@@ -123,9 +142,11 @@ function buildStateList(raw) {
   const max = arr.length ? arr[0][1] : 1;
   const ul = document.getElementById('state-list');
   ul.innerHTML = '';
-  for (const [st, n] of arr) {
+
+  arr.forEach(([st, n], i) => {
     const li = document.createElement('li');
     li.className = 'state-row';
+    if (i >= STATE_ROWS_DEFAULT) li.style.display = 'none';
     const pct = Math.max(2, (n / max) * 100);
     li.innerHTML = `
       <span class="st">${st}</span>
@@ -133,6 +154,23 @@ function buildStateList(raw) {
       <span class="num">${n}</span>
     `;
     ul.appendChild(li);
+  });
+
+  const btn = document.getElementById('state-expand-btn');
+  if (arr.length > STATE_ROWS_DEFAULT) {
+    btn.style.display = '';
+    btn.textContent = `Show all ${arr.length} states`;
+    btn.dataset.expanded = '0';
+    btn.onclick = () => {
+      const expanded = btn.dataset.expanded === '1';
+      ul.querySelectorAll('.state-row').forEach((el, i) => {
+        if (i >= STATE_ROWS_DEFAULT) el.style.display = expanded ? 'none' : '';
+      });
+      btn.dataset.expanded = expanded ? '0' : '1';
+      btn.textContent = expanded ? `Show all ${arr.length} states` : 'Show less';
+    };
+  } else {
+    btn.style.display = 'none';
   }
 }
 
@@ -146,7 +184,7 @@ function buildMarkers(viewData, view, markerLayer) {
     const html = `<div class="pin${showNum ? ' with-num' : ''}" style="width:${size}px;height:${size}px;">${showNum ? fmtNum(d.count) : ''}</div>`;
     const icon = L.divIcon({ className: 'pin-wrap', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
     const m = L.marker([d.lat, d.lng], { icon, riseOnHover: true });
-    const tipLabel = view === 'state' ? d.state : `${d.city}, ${d.state}`;
+    const tipLabel = view === 'state' ? (STATE_NAMES[d.state] || d.state) : `${d.city}, ${d.state}`;
     m.bindPopup(popupHTML(d, view), { closeButton: true, autoPan: true });
     m.bindTooltip(`${tipLabel} — ${fmtNum(d.count)}`, { direction: 'top', offset: [0, -size / 2 - 4] });
     m.addTo(markerLayer);
@@ -157,7 +195,7 @@ function buildMarkers(viewData, view, markerLayer) {
 
 (async function main() {
   const raw = await load();
-  let view = 'zip';
+  let view = 'state';
 
   buildStats(raw);
   buildStateList(raw);
