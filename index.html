@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Greyhound Games — Ship Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-mark">GG</span>
+    <div class="brand-text">
+      <div class="brand-name">Greyhound Games</div>
+      <div class="brand-sub">Shipment Map</div>
+    </div>
+  </div>
+  <div class="stats" id="stats">
+    <div class="stat"><div class="stat-num" id="stat-orders">—</div><div class="stat-label">orders</div></div>
+    <div class="stat"><div class="stat-num" id="stat-zips">—</div><div class="stat-label">zip codes</div></div>
+    <div class="stat"><div class="stat-num" id="stat-states">—</div><div class="stat-label">states</div></div>
+  </div>
+</header>
+
+<div class="view-bar">
+  <button class="view-btn active" data-view="zip">ZIP</button>
+  <button class="view-btn" data-view="city">City</button>
+  <button class="view-btn" data-view="state">State</button>
+</div>
+
+<main class="layout">
+  <aside class="sidebar">
+    <section class="panel">
+      <h3 class="panel-title" id="top-title">Top destinations</h3>
+      <ol class="top-list" id="top-list"></ol>
+    </section>
+    <section class="panel">
+      <h3 class="panel-title">By state</h3>
+      <ul class="state-list" id="state-list"></ul>
+    </section>
+    <section class="panel legend-panel">
+      <h3 class="panel-title">Legend</h3>
+      <div class="legend">
+        <div class="legend-row"><span class="dot dot-1"></span><span id="leg-1">1 order</span></div>
+        <div class="legend-row"><span class="dot dot-2"></span><span id="leg-2">2–3 orders</span></div>
+        <div class="legend-row"><span class="dot dot-3"></span><span id="leg-3">4–6 orders</span></div>
+        <div class="legend-row"><span class="dot dot-4"></span><span id="leg-4">7+ orders</span></div>
+      </div>
+      <p class="legend-note">Pin size scales with order count. Click a pin for details.</p>
+    </section>
+  </aside>
+
+  <div id="map" aria-label="Map of shipments"></div>
+</main>
+
+<footer class="app-footer">
+  <span>Good cards. Great service. GG.</span>
+  <span class="foot-meta" id="foot-meta"></span>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="app.js"></script>
+</body>
+</html>
